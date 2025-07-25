@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Gaya untuk kartu menu */
         .food-card {
             transition: all 0.3s ease;
             cursor: pointer;
@@ -20,10 +21,14 @@
             border: 2px solid #4CAF50;
             background-color: #f8fff8;
         }
+        
+        /* Gaya untuk ringkasan pesanan (struk) */
         .receipt {
             background: linear-gradient(to bottom, #ffffff, #f5f5f5);
             border-left: 4px solid #4CAF50;
         }
+        
+        /* Gaya untuk tombol kuantitas di keranjang */
         .quantity-btn {
             width: 30px;
             height: 30px;
@@ -32,161 +37,193 @@
             justify-content: center;
             border-radius: 50%;
         }
-        .animated-checkmark {
-            animation: checkmark 0.5s ease;
-        }
-        @keyframes checkmark {
+        
+        /* Animasi untuk checkmark (modal sukses) */
+        @keyframes animated-checkmark { /* Nama animation keyframe diperbaiki agar tidak bentrok */
             0% { transform: scale(0); }
             50% { transform: scale(1.2); }
             100% { transform: scale(1); }
         }
-        
-        /* Card styling */
-        .food-card {
-            transition: all 0.3s ease;
-            cursor: pointer;
+        .animated-checkmark {
+            animation: animated-checkmark 0.5s ease; /* Panggil keyframe yang diperbaiki */
         }
-        .food-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        .food-card.selected {
-            border: 2px solid #4CAF50;
-            background-color: #f8fff8;
-        }
-        
 
+        /* Styles for Sticky Order Summary */
+        .sticky-top {
+            position: -webkit-sticky; /* For Safari */
+            position: sticky;
+            top: 1rem; /* Adjust as needed */
+            align-self: flex-start; /* To ensure it sticks within its flex container */
+        }
     </style>
 </head>
 <body class="bg-gray-50">
-    <div class="container py-5">
-        <!-- Tombol Kembali di kiri atas -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <a href="/dashbord" class="btn btn-outline-primary">
-                <i class="fas fa-arrow-left me-2"></i>Kembali
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-3 mb-4">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="">
+                <i class="fas fa-store me-2"></i> RM Bismillah
             </a>
-            <div class="text-center">
-                <h1 class="display-5 fw-bold text-gray-800">Input Transaksi</h1>
-                <p class="lead text-gray-600">Masukkan detail pesanan pelanggan</p>
-            </div>
-            <div style="width: 100px;"></div> <!-- Spacer untuk balance -->
+
+            <form class="d-flex ms-auto me-3" role="search">
+                <div class="input-group">
+                    <input class="form-control" type="search" placeholder="Cari Menu..." aria-label="Search" id="menuSearchInput">
+                    <button class="btn btn-outline-success" type="submit" id="searchButton"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
+
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 35px; height: 35px; font-weight: bold;">
+                            {{ Auth::user()->name[0] ?? '?' }}
+                        </div>
+                        <span class="ms-2 d-none d-lg-inline">{{ Auth::user()->name ?? 'Pengguna' }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                        <li>
+                            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                @csrf
+                            </form>
+                            <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                Logout
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold text-gray-800">Input Transaksi</h1>
+            <p class="lead text-gray-600">Masukkan detail pesanan pelanggan</p>
         </div>
 
         <div class="row g-4">
-            <!-- Left Column - Order Form -->
             <div class="col-lg-8">
                 <div class="card shadow-sm border-0">
                     <div class="card-body p-4">
-                        <!-- Customer Info -->
                         <div class="mb-4">
                             <h5 class="fw-bold text-gray-700 mb-3">
                                 <i class="fas fa-user-circle me-2 text-primary"></i> Informasi Pelanggan
                             </h5>
-                            <div class="row g-3">
+                            <div class="row g-3 align-items-end">
                                 <div class="col-md-6">
                                     <label class="form-label">Nomor Pelanggan</label>
                                     <input type="text" class="form-control" id="customerNumber" name="nomor_pelanggan" value="{{ old('nomor_pelanggan', $nomor_pelanggan ?? '') }}" required>
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label d-block">&nbsp;</label>
+                                    <a href="{{ route('menu.index') }}" class="btn btn-success">
+                                        <i class="fas fa-edit me-1"></i> Edit Menu
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Nasi -->
-                        <div class="mb-4">
-                            <h5 class="fw-bold text-gray-700 mb-3">
-                                <i class="fas fa-drumstick-bite me-2 text-primary"></i> Pilih Nasi?
-                            </h5>
-                            <div class="row g-3" id="NasiContainer">
-                                <!-- Main dishes will be added here by JavaScript -->
-                            </div>
-                        </div>
-                        <!-- Main Dishes -->
-                        <div class="mb-4">
-                            <h5 class="fw-bold text-gray-700 mb-3">
-                                <i class="fas fa-drumstick-bite me-2 text-primary"></i> Pilih Lauk
-                            </h5>
-                            <div class="row g-3" id="LaukContainer">
-                                <!-- Main dishes will be added here by JavaScript -->
-                            </div>
-                        </div>
-                        <!-- Sayur -->
-                        <div class="mb-4">
-                            <h5 class="fw-bold text-gray-700 mb-3">
-                                <i class="fas fa-drumstick-bite me-2 text-primary"></i> Pilih Sayur
-                            </h5>
-                            <div class="row g-3" id="SayurContainer">
-                                <!-- Sayur will be added here by JavaScript -->
-                            </div>
-                        </div>
+                        @php
+                            // Pastikan $groupedMenus diasumsikan dikirim dari TransactionController::create()
+                            // Atau, jika tidak, bisa digrouping di sini: $groupedMenus = $menus->groupBy('category_id');
+                        @endphp
 
-                        <!-- Drinks -->
-                        <div class="mb-4">
-                            <h5 class="fw-bold text-gray-700 mb-3">
-                                <i class="fas fa-glass-water me-2 text-primary"></i> Pilih Minuman
-                            </h5>
-                            <div class="row g-3" id="drinksContainer">
-                                <!-- Drinks will be added here by JavaScript -->
+                        @forelse($categories as $category)
+                            <div class="mb-4 menu-category-section" data-category-id="{{ $category->id }}">
+                                <h5 class="fw-bold text-gray-700 mb-3">
+                                    <i class="fas fa-utensils me-2 text-primary"></i> Pilih {{ $category->name }}
+                                    @if($category->name === 'Nasi') + @endif
+                                </h5>
+                                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                                    @php
+                                        // Pastikan $groupedMenus dikirim dari controller
+                                        $currentCategoryMenus = $groupedMenus->get($category->id) ?? collect();
+                                    @endphp
+                                    @forelse($currentCategoryMenus as $menu)
+                                        <div class="col menu-item" data-category-id="{{ $menu->category_id }}" data-menu-id="{{ $menu->id }}" data-price="{{ $menu->price }}">
+                                            <div class="card h-100 shadow-sm border-0 food-card">
+                                                @if($menu->image)
+                                                    <img src="{{ asset('storage/' . $menu->image) }}" class="card-img-top" alt="{{ $menu->name }}" style="height: 150px; object-fit: cover;">
+                                                @else
+                                                    <img src="{{ asset('images/default-menu.png') }}" class="card-img-top" alt="No Image" style="height: 150px; object-fit: cover;">
+                                                @endif
+                                                <div class="card-body d-flex flex-column">
+                                                    <h5 class="card-title mb-1">{{ $menu->name }}</h5>
+                                                    <p class="card-text fw-bold text-success mt-auto">Rp {{ number_format($menu->price, 0, ',', '.') }}</p>
+                                                    <button class="btn btn-primary add-to-cart-btn" data-menu-id="{{ $menu->id }}">Tambah</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <div class="col-12">
+                                            <p class="text-center text-muted">Belum ada menu di kategori {{ $category->name }}.</p>
+                                        </div>
+                                    @endforelse
+                                </div>
                             </div>
-                        </div>
+                        @empty
+                            <div class="col-12">
+                                <p class="text-center text-muted">Belum ada kategori menu yang tersedia.</p>
+                            </div>
+                        @endforelse
 
-                        <!-- Snacks -->
-                        <div class="mb-4">
-                            <h5 class="fw-bold text-gray-700 mb-3">
-                                <i class="fas fa-cookie-bite me-2 text-primary"></i> Pilih Cemilan
-                            </h5>
-                            <div class="row g-3" id="snacksContainer">
-                                <!-- Snacks will be added here by JavaScript -->
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column - Order Summary -->
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0 sticky-top" style="top: 20px;">
+                <div class="card shadow-sm border-0 sticky-top">
                     <div class="card-body p-4 receipt">
                         <h5 class="fw-bold text-gray-700 mb-3">
                             <i class="fas fa-receipt me-2 text-primary"></i> Ringkasan Pesanan
                         </h5>
+
+                        {{-- Filter Kategori di Ringkasan Pesanan (ini adalah filter display menu di sebelah kiri) --}}
+                        <div class="mb-3">
+                            <label for="filterKategori" class="form-label">Pilih Kategori Menu</label>
+                            <select class="form-select" id="filterKategori">
+                                <option value="">Tampilkan Semua Menu</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="text-muted">Tanggal:</span>
-                                <span id="transactionDate" class="fw-bold">-</span>
+                                <span id="transactionDate" class="fw-bold">{{ date('d M Y') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="text-muted">Waktu:</span>
-                                <span id="transactionTime" class="fw-bold">-</span>
+                                <span id="transactionTime" class="fw-bold">{{ date('H:i') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="text-muted">No. Pelanggan:</span>
-                                <span id="customerInfo" class="fw-bold">-</span>
+                                <span id="customerInfo" class="fw-bold">{{ $nomor_pelanggan ?? '-' }}</span>
                             </div>
                         </div>
                         
                         <hr>
                         
-                        <div id="orderItems" class="mb-3">
+                        <ul id="cartItems" class="list-group list-group-flush mb-3">
+                            {{-- Item-item pesanan akan dirender di sini oleh JavaScript --}}
                             <p class="text-muted text-center my-4">Belum ada pesanan</p>
-                        </div>
-                    
+                        </ul>
+                        
                         <hr>
                         
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="h5 fw-bold text-primary">Total:</span>
-                            <span id="total" class="h4 fw-bold text-primary">Rp 0</span>
+                            <span id="totalAmount" class="h4 fw-bold text-primary">Rp 0</span>
                         </div>
                         
-                        <!-- Tambahkan form -->
                         <form id="orderForm" method="POST" action="{{ route('transactions.store') }}">
                             @csrf
-                            <!-- ...input nomor pelanggan dan input pesanan lain... -->
-                            <!-- Pastikan input pesanan dikirimkan dalam bentuk array atau sesuai kebutuhan backend -->
+                            <input type="hidden" name="customer_number" id="formCustomerNumberInput">
                             <input type="hidden" name="order_data" id="orderDataInput">
-                            <!-- Tombol simpan -->
                             <button id="submitOrder" class="btn btn-primary w-100 mt-4 py-2" type="submit">
-                            <i class="fas fa-check-circle me-2"></i> Simpan Transaksi
-                        </button>
+                                <i class="fas fa-check-circle me-2"></i> Simpan Transaksi
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -194,7 +231,6 @@
         </div>
     </div>
 
-    <!-- Success Modal -->
     <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -214,394 +250,197 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sample data for menu items
-        const menuItems = {
-
-            Nasi: [
-                { id: 95, name: "Nasi Putih", price: 5000},
-                { id: 96, name: "Nasi+Lauk", price: 5000},
-                { id: 97, name: "Nasi+Daging", price: 5000},
-                { id: 98, name: "Ayam Rendang", price: 5000},
-                { id: 99, name: "Ikan Patin Tempoyak", price: 5000},
-                
-            ],
-            Lauk: [
-                { id: 1, name: "Ayam Goreng", price: 5000, image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiLkI1un0iLRlrhTKzxWbgU1mv5PaEzxfvVg&s" },
-                { id: 2, name: "Ikan Nila Bakar", price: 5000, image: "" },
-                { id: 3, name: "Ayam Rendang", price: 5000, image: "" },
-                { id: 4, name: "Ikan Patin Tempoyak", price: 5000, image: "" },
-                { id: 5, name: "Ayam Gulai", price: 5000, image: "" },
-                { id: 6, name: "Ayam Kecap", price: 28000, image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8AmkfFbf1aDrpJqTh8DVSNZ5Krx-yIVOcvA&s" },
-                { id: 7, name: "Ayam Rica", price: 28000, image: "https://asset.kompas.com/crops/6_Qs_cD9xt9sCiCrqZXVr0zPh8U=/0x276:667x721/1200x800/data/photo/2022/04/17/625b7bdcaf58a.jpeg" },
-                { id: 8, name: "Telur Ayam Sambal", price: 28000, image: ""},
-                { id: 9, name: "Ikan Goreng", price: 28000, image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSiLkI1un0iLRlrhTKzxWbgU1mv5PaEzxfvVg&s" },
-                { id: 10, name: "Ayam Sambal", price: 28000, image: "" },
-                
-            ],
-            Sayur: [
-                { id: 51, name: "Ayam Goreng", price: 5000, image: "" },
-                { id: 52, name: "Ikan Nila Bakar", price: 5000, image: "" },
-                { id: 53, name: "Ayam Rendang", price: 35000, image: "" },
-                { id: 54, name: "Sate Ayam", price: 28000, image: "" },
-                { id: 55, name: "Sate kambing", price: 28000, image: "" },
-                { id: 56, name: "Sate Ayam", price: 28000, image: "" },
-                { id: 57, name: "Sate Ayam", price: 28000, image: "" },
-                { id: 58, name: "Sate Ayam", price: 28000, image: "" },
-                { id: 59, name: "Sate Ayam", price: 28000, image: "" },
-                { id: 60, name: "Sate Ayam", price: 28000, image: "" },
-            ],
-            drinks: [
-                { id: 21, name: "Es Teh", price: 8000, image: "" },
-                { id: 22, name: "Jus Jeruk", price: 15000, image: "" },
-                { id: 23, name: "Es Kopi", price: 12000, image: "" },
-                { id: 24, name: "Air Mineral", price: 5000, image: "" },
-            ],
-            snacks: [
-                { id: 41, name: "Telur Asin", price: 10000, image: "/images/telur_asin.jpg" }
-            ]
-        };
-
-        // Current order
-        let currentOrder = {
-            customerNumber: "",
-            withRice: false,
-            items: [],
-            total: 0,
-            dateTime: ""
-        };
-
-        // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
-            // Render menu items
-            renderMenuItems();
-            
-            // Update date and time
-            updateDateTime();
-            
-            // Set up event listeners
-            setupEventListeners();
+            const customerNumberInput = document.getElementById('customerNumber');
+            const customerInfoSpan = document.getElementById('customerInfo');
+            const transactionDateSpan = document.getElementById('transactionDate');
+            const transactionTimeSpan = document.getElementById('transactionTime');
 
-            // Set up form submission
-            document.getElementById('orderForm').addEventListener('submit', function(e) {
-                // Masukkan data pesanan ke input hidden
-                document.getElementById('orderDataInput').value = JSON.stringify(currentOrder.items);
-                // Form akan submit ke backend
-            });
-        });
+            const filterKategoriSelect = document.getElementById('filterKategori');
+            const menuCategorySections = document.querySelectorAll('.menu-category-section');
 
-        // Render menu items
-        function renderMenuItems() {
-            // Main Dishes
-            const NasiContainer = document.getElementById('NasiContainer');
-            NasiContainer.innerHTML = '';
-            menuItems.Nasi.forEach(item => {
-                NasiContainer.appendChild(createMenuItemCard(item));
-            });
-            const LaukContainer = document.getElementById('LaukContainer');
-            LaukContainer.innerHTML = '';
-            menuItems.Lauk.forEach(item => {
-                LaukContainer.appendChild(createMenuItemCard(item));
-            });
-            // Sayur
-            const SayurContainer = document.getElementById('SayurContainer');
-            SayurContainer.innerHTML = '';
-            menuItems.Sayur.forEach(item => {
-                SayurContainer.appendChild(createMenuItemCard(item));
-            });
-            
-            // Drinks
-            const drinksContainer = document.getElementById('drinksContainer');
-            drinksContainer.innerHTML = '';
-            menuItems.drinks.forEach(item => {
-                drinksContainer.appendChild(createMenuItemCard(item));
-            });
-            
-            // Snacks
-            const snacksContainer = document.getElementById('snacksContainer');
-            snacksContainer.innerHTML = '';
-            menuItems.snacks.forEach(item => {
-                snacksContainer.appendChild(createMenuItemCard(item));
-            });
-        }
+            const orderItemsContainer = document.getElementById('cartItems');
+            const totalAmountSpan = document.getElementById('totalAmount');
+            const orderForm = document.getElementById('orderForm');
+            const orderDataInput = document.getElementById('orderDataInput');
+            const formCustomerNumberInput = document.getElementById('formCustomerNumberInput');
 
-        // Create menu item card element
-        function createMenuItemCard(item) {
-            const col = document.createElement('div');
-            col.className = 'col-md-6 col-lg-4';
-            col.innerHTML = `
-                <div class="card food-card h-100" data-id="${item.id}">
-                    <img src="${item.image}" class="card-img-top" alt="${item.name}" style="height: 150px; object-fit: cover;">
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title">${item.name}</h6>
-                        <p class="card-text text-success fw-bold">Rp ${item.price.toLocaleString()}</p>
-                        <button class="btn btn-primary add-item mt-auto" data-id="${item.id}">
-                            <i class="fas fa-plus me-2"></i>Tambah
-                        </button>
-                    </div>
-                </div>
-            `;
-            return col;
-        }
+            let cart = [];
 
-        // Set up event listeners
-        function setupEventListeners() {
-            // Customer info change
-            document.getElementById('customerNumber').addEventListener('input', function() {
-                currentOrder.customerNumber = this.value;
-                updateOrderSummary();
-            });
-            
-            // Add item button
-            document.addEventListener('click', function(e) {
-                if (e.target.classList.contains('add-item') || e.target.closest('.add-item')) {
-                    const button = e.target.classList.contains('add-item') ? e.target : e.target.closest('.add-item');
-                    const itemId = parseInt(button.dataset.id);
-                    console.log('Add item clicked, itemId:', itemId);
-                    addItemToOrder(itemId);
-                }
-                
-                // Remove item button
-                if (e.target.classList.contains('remove-item') || e.target.closest('.remove-item')) {
-                    const button = e.target.classList.contains('remove-item') ? e.target : e.target.closest('.remove-item');
-                    const itemId = parseInt(button.dataset.id);
-                    removeItemFromOrder(itemId);
-                }
-                
-                // Quantity decrease
-                if (e.target.classList.contains('decrease-quantity') || e.target.closest('.decrease-quantity')) {
-                    const button = e.target.classList.contains('decrease-quantity') ? e.target : e.target.closest('.decrease-quantity');
-                    const itemId = parseInt(button.dataset.id);
-                    decreaseQuantity(itemId);
-                }
-                
-                // Quantity increase
-                if (e.target.classList.contains('increase-quantity') || e.target.closest('.increase-quantity')) {
-                    const button = e.target.classList.contains('increase-quantity') ? e.target : e.target.closest('.increase-quantity');
-                    const itemId = parseInt(button.dataset.id);
-                    increaseQuantity(itemId);
-                }
-            });
-            
-            // Submit order
-            // document.getElementById('submitOrder').addEventListener('click', function() {
-            //     submitOrder();
-            // });
-        }
-
-        // Add item to order
-        function addItemToOrder(itemId) {
-            console.log('addItemToOrder called with itemId:', itemId);
-            
-            // Find the item in menu
-            let item = null;
-            for (const category in menuItems) {
-                const foundItem = menuItems[category].find(i => i.id === itemId);
-                if (foundItem) {
-                    item = foundItem;
-                    break;
-                }
-            }
-            
-            if (!item) {
-                console.log('Item not found for itemId:', itemId);
-                return;
-            }
-            
-            console.log('Found item:', item);
-            
-            // Check if item already exists in order
-            const existingItemIndex = currentOrder.items.findIndex(i => i.id === itemId);
-            
-            if (existingItemIndex !== -1) {
-                // Increase quantity if item exists
-                currentOrder.items[existingItemIndex].quantity += 1;
-                console.log('Increased quantity for existing item:', currentOrder.items[existingItemIndex]);
-            } else {
-                // Add new item to order
-                const newItem = {
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: 1,
-                    image: item.image
-                };
-                currentOrder.items.push(newItem);
-                console.log('Added new item to order:', newItem);
-            }
-            
-            console.log('Current order items:', currentOrder.items);
-            
-            // Update order summary
-            updateOrderSummary();
-            
-            // Show animation
-            const card = document.querySelector(`.food-card[data-id="${itemId}"]`);
-            if (card) {
-                card.classList.add('selected');
-                setTimeout(() => {
-                    card.classList.remove('selected');
-                }, 500);
-            }
-            console.log('Item added successfully!');
-        }
-
-        // Remove item from order
-        function removeItemFromOrder(itemId) {
-            currentOrder.items = currentOrder.items.filter(item => item.id !== itemId);
-            updateOrderSummary();
-        }
-
-        // Decrease quantity
-        function decreaseQuantity(itemId) {
-            const itemIndex = currentOrder.items.findIndex(item => item.id === itemId);
-            
-            if (itemIndex !== -1) {
-                if (currentOrder.items[itemIndex].quantity > 1) {
-                    currentOrder.items[itemIndex].quantity -= 1;
-                } else {
-                    // Remove item if quantity is 1
-                    currentOrder.items.splice(itemIndex, 1);
-                }
-                
-                updateOrderSummary();
-            }
-        }
-
-        // Increase quantity
-        function increaseQuantity(itemId) {
-            const itemIndex = currentOrder.items.findIndex(item => item.id === itemId);
-            
-            if (itemIndex !== -1) {
-                currentOrder.items[itemIndex].quantity += 1;
-                updateOrderSummary();
-            }
-        }
-
-        // Update order summary
-        function updateOrderSummary() {
-            console.log('updateOrderSummary called');
-            console.log('Current items:', currentOrder.items);
-            
-            // Calculate total directly from items
-            let total = 0;
-            
-            // Add items
-            currentOrder.items.forEach(item => {
-                total += item.price * item.quantity;
-            });
-            
-            // Update current order
-            currentOrder.total = total;
-            console.log('Total calculated:', total);
-            
-            // Update UI
-            updateDateTime();
-            updateCustomerInfo();
-            updateOrderItems();
-            updateOrderTotals();
-            
-            // Enable/disable submit button
-            document.getElementById('submitOrder').disabled = currentOrder.items.length === 0;
-            console.log('Order summary updated successfully');
-        }
-
-        // Update date and time
-        function updateDateTime() {
+            // --- Inisialisasi Tanggal dan Waktu ---
             const now = new Date();
-            const dateStr = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            
-            document.getElementById('transactionDate').textContent = dateStr;
-            document.getElementById('transactionTime').textContent = timeStr;
-            
-            currentOrder.dateTime = `${dateStr} ${timeStr}`;
-        }
+            transactionDateSpan.textContent = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            transactionTimeSpan.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-        // Update customer info
-        function updateCustomerInfo() {
-            const customerNumber = currentOrder.customerNumber || '-';
-            document.getElementById('customerInfo').textContent = `#${customerNumber}`;
-        }
-
-        // Update order items
-        function updateOrderItems() {
-            console.log('updateOrderItems called');
-            const orderItemsContainer = document.getElementById('orderItems');
-            
-            if (currentOrder.items.length === 0) {
-                orderItemsContainer.innerHTML = '<p class="text-muted text-center my-4">Belum ada pesanan</p>';
-                console.log('No items, showing empty message');
-                return;
-            }
-            
-            let html = '';
-            
-            // Add other items
-            currentOrder.items.forEach(item => {
-                html += `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="d-flex align-items-center">
-                            <div class="quantity-control d-flex align-items-center me-2">
-                                <button class="btn btn-sm btn-outline-secondary decrease-quantity p-0 quantity-btn" data-id="${item.id}">
-                                    <i class="fas fa-minus"></i>
-                                </button>
-                                <span class="mx-2">${item.quantity}x</span>
-                                <button class="btn btn-sm btn-outline-secondary increase-quantity p-0 quantity-btn" data-id="${item.id}">
-                                    <i class="fas fa-plus"></i>
-                                </button>
-                            </div>
-                            <span>${item.name}</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <span class="fw-bold me-2">Rp ${(item.price * item.quantity).toLocaleString()}</span>
-                            <button class="btn btn-sm btn-outline-danger remove-item p-0 quantity-btn" data-id="${item.id}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
+            // --- Fungsi untuk memperbarui No. Pelanggan di Ringkasan ---
+            customerNumberInput.addEventListener('input', function() {
+                customerInfoSpan.textContent = this.value || '-';
+                formCustomerNumberInput.value = this.value;
             });
-            
-            orderItemsContainer.innerHTML = html;
-            console.log('Order items HTML updated:', html);
-        }
+            customerInfoSpan.textContent = customerNumberInput.value || '-';
+            formCustomerNumberInput.value = customerNumberInput.value;
 
-        // Update order totals
-        function updateOrderTotals() {
-            document.getElementById('total').textContent = `Rp ${currentOrder.total.toLocaleString()}`;
-        }
+            // --- Fungsi Filter Kategori Menu (di bagian KIRI) ---
+            filterKategoriSelect.addEventListener('change', function() {
+                const selectedCategoryId = this.value;
+                menuCategorySections.forEach(section => {
+                    if (selectedCategoryId === '' || section.dataset.categoryId == selectedCategoryId) { // Gunakan == untuk perbandingan longgar
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            });
 
-        // Submit order
-        function submitOrder() {
-            // In a real application, you would send this data to your backend
-            console.log('Order submitted:', currentOrder);
-            
-            // Show success modal
+            // --- Fungsi Tambah ke Keranjang ---
+            const allAddButtons = document.querySelectorAll('.add-to-cart-btn');
+            allAddButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const menuId = this.dataset.menuId;
+                    const menuItemCard = this.closest('.menu-item');
+                    const menuName = menuItemCard.querySelector('.card-title').textContent;
+                    const menuPrice = parseFloat(menuItemCard.dataset.price);
+
+                    const existingItemIndex = cart.findIndex(item => item.menu_id == menuId);
+
+                    if (existingItemIndex > -1) {
+                        cart[existingItemIndex].quantity++;
+                        cart[existingItemIndex].subtotal = cart[existingItemIndex].quantity * cart[existingItemIndex].price;
+                    } else {
+                        cart.push({
+                            menu_id: parseInt(menuId),
+                            name: menuName,
+                            price: menuPrice,
+                            quantity: 1,
+                            subtotal: menuPrice
+                        });
+                    }
+                    renderCart();
+                });
+            });
+
+            // --- Fungsi Render Keranjang ---
+            function renderCart() {
+                orderItemsContainer.innerHTML = '';
+                let totalAmount = 0;
+
+                if (cart.length === 0) {
+                    orderItemsContainer.innerHTML = '<p class="text-muted text-center my-4">Belum ada pesanan</p>';
+                } else {
+                    cart.forEach((item, index) => {
+                        totalAmount += item.subtotal;
+                        orderItemsContainer.innerHTML += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                <div>
+                                    <span class="fw-bold">${item.name}</span> <br>
+                                    <small class="text-muted">Rp ${item.price.toLocaleString('id-ID')} x ${item.quantity}</small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <span class="fw-bold me-2">Rp ${item.subtotal.toLocaleString('id-ID')}</span>
+                                    <button class="btn btn-sm btn-outline-secondary me-1 quantity-btn" onclick="updateCartItemQuantity(${index}, -1)">-</button>
+                                    <span class="fw-bold mx-1">${item.quantity}</span>
+                                    <button class="btn btn-sm btn-outline-secondary me-1 quantity-btn" onclick="updateCartItemQuantity(${index}, 1)">+</button>
+                                    <button class="btn btn-sm btn-danger ms-2" onclick="removeCartItem(${index})"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </li>
+                        `;
+                    });
+                }
+                totalAmountSpan.textContent = `Rp ${totalAmount.toLocaleString('id-ID')}`;
+                orderDataInput.value = JSON.stringify(cart);
+            }
+
+            // --- Fungsi Update Kuantitas dari Tombol di Keranjang ---
+            window.updateCartItemQuantity = function(index, change) {
+                cart[index].quantity += change;
+                if (cart[index].quantity <= 0) {
+                    removeCartItem(index);
+                } else {
+                    cart[index].subtotal = cart[index].quantity * cart[index].price;
+                    renderCart();
+                }
+            };
+
+            // --- Fungsi Hapus Item dari Keranjang ---
+            window.removeCartItem = function(index) {
+                cart.splice(index, 1);
+                renderCart();
+            };
+
+            // --- Handle Submit Form Transaksi ---
+            orderForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (cart.length === 0) {
+                    alert('Keranjang belanja masih kosong!');
+                    return;
+                }
+
+                if (!customerNumberInput.value) {
+                    alert('Nomor pelanggan harus diisi!');
+                    customerNumberInput.focus();
+                    return;
+                }
+
+                formCustomerNumberInput.value = customerNumberInput.value;
+                orderDataInput.value = JSON.stringify(cart);
+
+                this.submit();
+            });
+
+            // --- Handle Success/Error dari Server ---
+            @if(session('success'))
             const successModal = new bootstrap.Modal(document.getElementById('successModal'));
             successModal.show();
-            
-            // Reset form after submission
-            setTimeout(() => {
-                resetForm();
-                successModal.hide();
-            }, 3000);
-        }
+            // <<< PERUBAHAN DI SINI: Aktifkan kembali event listener untuk reset form >>>
+            successModal._element.addEventListener('hidden.bs.modal', function () {
+                cart = []; // Kosongkan keranjang
+                renderCart(); // Render keranjang yang kosong
+                customerNumberInput.value = ''; // Kosongkan nomor pelanggan
+                customerInfoSpan.textContent = '-'; // Reset info pelanggan di ringkasan
+                window.location.reload(); // Reload halaman untuk mendapatkan nomor pelanggan baru dan reset form lainnya
+            });
+        @endif
 
-        // Reset form
-        function resetForm() {
-            currentOrder = {
-                customerNumber: document.getElementById('customerNumber').value,
-                withRice: false,
-                items: [],
-                total: 0,
-                dateTime: ""
-            };
-            
-            // Reset UI
-            updateOrderSummary();
-        }
-        
+            // --- Logic Pencarian Menu ---
+            const menuSearchInput = document.getElementById('menuSearchInput');
+            const searchButton = document.getElementById('searchButton');
 
+            function filterMenusBySearch() {
+                const searchTerm = menuSearchInput.value.toLowerCase();
+                const menuCategorySections = document.querySelectorAll('.menu-category-section');
+
+                menuCategorySections.forEach(section => {
+                    let sectionHasVisibleItems = false;
+                    const menuItemsInThisSection = section.querySelectorAll('.menu-item');
+
+                    menuItemsInThisSection.forEach(item => {
+                        const menuName = item.querySelector('.card-title').textContent.toLowerCase();
+                        if (menuName.includes(searchTerm)) {
+                            item.style.display = 'block';
+                            sectionHasVisibleItems = true;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+
+                    if (sectionHasVisibleItems || searchTerm === '') {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+            }
+
+            menuSearchInput.addEventListener('keyup', filterMenusBySearch);
+            searchButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                filterMenusBySearch();
+            });
+
+            // Inisialisasi awal
+            renderCart();
+        });
     </script>
 </body>
 </html>

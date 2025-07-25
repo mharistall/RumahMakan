@@ -11,18 +11,20 @@ class UserSeeder extends Seeder
     public function run()
     {
         User::updateOrCreate(
-            ['email' => 'admin@rumahmakan.com'],
+            ['username' => 'pemilik@rumahmakan.com'],
             [
-                'name' => 'admin',
-                'password' => Hash::make('admin123'),
+                'name' => 'pemilik',
+                'password' => Hash::make('pemilik123'),
+                'role' => 'pemilik',
             ]
         );
 
         User::updateOrCreate(
-            ['email' => 'kasir@rumahmakan.com'],
+            ['username' => 'admin@rumahmakan.com'],
             [
-                'name' => 'kasir',
-                'password' => Hash::make('kasir123'),
+                'name' => 'admin',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin', // atau 'admin' jika ingin role baru
             ]
         );
     }

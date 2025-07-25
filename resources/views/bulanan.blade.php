@@ -3,482 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monthly Financial Recap</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Laporan Bulanan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#3b82f6',
-                        secondary: '#10b981',
-                        danger: '#ef4444',
-                        warning: '#f59e0b',
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        .chart-container {
-            height: 300px;
+        body { background: #f8fafc; }
+        .card { border-radius: 0.75rem; }
+        .table th, .table td { vertical-align: middle; }
+        .table thead th { background-color: #e9ecef; }
+        /* --- Gaya Sidebar dari dashbord.blade.php --- */
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e3a8a, #1e40af);
+            transition: all 0.3s;
         }
-        @media (max-width: 640px) {
-            .responsive-table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
+        .sidebar-link {
+            transition: all 0.2s;
+            color: white; /* Default link color */
+            padding: 1rem; /* Padding for click area */
+            display: flex;
+            align-items: center;
+            text-decoration: none; /* Remove underline */
+        }
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #fff;
+            color: white; /* Keep color white on hover */
+        }
+        .active-link {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid #fff;
+            color: white; /* Keep color white when active */
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                z-index: 100;
+                width: 250px;
+                transform: translateX(-100%);
             }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+        /* --- End Gaya Sidebar --- */
+        .rounded-circle-btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .rounded-circle-btn:hover {
+            background-color: #0056b3;
+            color: white;
         }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-        <!-- Header Section -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Monthly Financial Recap</h1>
-                <p class="text-gray-600">Track your income and expenses by month</p>
-            </div>
-            <div class="mt-4 md:mt-0">
-                <div class="flex items-center space-x-2">
-                    <button id="prev-month" class="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-100">
-                        <i class="fas fa-chevron-left text-gray-600"></i>
-                    </button>
-                    <div class="relative">
-                        <select id="month-select" class="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                            <i class="fas fa-chevron-down"></i>
+<body class="bg-gray-100">
+    <div class="container-fluid">
+        <div class="row">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse p-0">
+                <div class="position-sticky pt-3 p-3 text-white">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="fas fa-utensils fa-2x me-3"></i>
+                        <h4 class="m-0">Rumah Makan Bissmillah</h4>
+                    </div>
+                    <hr class="bg-light">
+                    <ul class="nav flex-column mt-4">
+                        <li class="nav-item">
+                            <a href="{{ route('dashboard') }}" class="nav-link sidebar-link p-3 {{ Request::routeIs('dashboard') ? 'active-link' : '' }}">
+                                <i class="fas fa-tachometer-alt me-3"></i>
+                                <span>Dashboard</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('rekap.harian') }}" class="nav-link sidebar-link p-3 {{ Request::routeIs('rekap.harian') || Request::routeIs('rekap.harian.grafik') ? 'active-link' : '' }}">
+                                <i class="fas fa-file-invoice-dollar me-3"></i>
+                                <span>Laporan Harian</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('rekap.bulanan') }}" class="nav-link sidebar-link p-3 {{ Request::routeIs('rekap.bulanan') || Request::routeIs('rekap.bulanan.grafik') ? 'active-link' : '' }}">
+                                <i class="fas fa-chart-bar me-3"></i>
+                                <span>Laporan Bulanan</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Laporan Bulanan</li>
+                        </ol>
+                    </nav>
+
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="rounded-circle-btn me-2">
+                                {{ Auth::user()->name[0] ?? '?' }}
+                            </div>
+                            <span class="d-none d-md-inline">{{ Auth::user()->name ?? 'Pengguna' }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                            <li>
+                                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                                    @csrf
+                                </form>
+                                <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                    Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <a href="{{ route('dashboard') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i> Kembali ke Dashboard
+                    </a>
+                    <h2 class="h3 mb-0 text-center flex-grow-1">Laporan Bulanan Penjualan</h2>
+                    <div style="width: 150px;"></div> </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <form action="{{ route('rekap.bulanan') }}" method="GET" class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="monthFilter" class="form-label">Pilih Bulan</label>
+                                <select class="form-select" id="monthFilter" name="month">
+                                    @for ($i = 1; $i <= 12; $i++)
+                                        <option value="{{ $i }}" {{ $selectedMonth == $i ? 'selected' : '' }}>
+                                            {{ date('F', mktime(0, 0, 0, $i, 10)) }}
+                                        </option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="yearFilter" class="form-label">Pilih Tahun</label>
+                                <select class="form-select" id="yearFilter" name="year">
+                                    @for ($i = date('Y') - 2; $i <= date('Y') + 1; $i++)
+                                        <option value="{{ $i }}" {{ $selectedYear == $i ? 'selected' : '' }}>{{ $i }}</option>
+                                    @endfor
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="perPage" class="form-label">Tampilkan per halaman</label>
+                                <select name="per_page" id="perPage" class="form-select">
+                                    <option value="5" {{ $perPage == 5 ? 'selected' : '' }}>5</option>
+                                    <option value="10" {{ $perPage == 10 ? 'selected' : '' }}>10</option>
+                                    <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25</option>
+                                    <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>
+                                    <option value="{{ $dailySummaries->total() }}" {{ $perPage == $dailySummaries->total() ? 'selected' : '' }}>Semua</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex justify-content-end align-items-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-1"></i> Filter
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary"><i class="fas fa-calendar-alt me-2"></i> Laporan Bulan:</h5>
+                                <p class="card-text fs-4 fw-bold">{{ date('F Y', mktime(0, 0, 0, $selectedMonth, 1, $selectedYear)) }}</p>
+                                <p class="text-muted mb-0">Total Ringkasan Harian: {{ $dailySummaries->total() }} hari</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="relative">
-                        <select id="year-select" class="appearance-none bg-white border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
-                            <option value="2023">2023</option>
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                            <i class="fas fa-chevron-down"></i>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5 class="card-title text-success"><i class="fas fa-money-bill-wave me-2"></i> Total Pendapatan Bulan Ini:</h5>
+                                <p class="card-text fs-4 fw-bold">Rp {{ number_format($totalMonthlyIncome, 0, ',', '.') }}</p>
+                                <p class="text-muted mb-0">Didapatkan dari {{ $totalMonthlyTransactions }} transaksi.</p>
+                            </div>
                         </div>
                     </div>
-                    <button id="next-month" class="p-2 rounded-full bg-white border border-gray-200 hover:bg-gray-100">
-                        <i class="fas fa-chevron-right text-gray-600"></i>
-                    </button>
                 </div>
-            </div>
-        </div>
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500">Total Income</p>
-                        <h2 class="text-3xl font-bold text-primary" id="total-income">$12,450</h2>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Ringkasan Pendapatan Harian Bulan Ini</h5>
                     </div>
-                    <div class="p-3 rounded-full bg-blue-100 text-primary">
-                        <i class="fas fa-wallet text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-sm text-gray-500 flex items-center">
-                        <span class="text-green-500 mr-1"><i class="fas fa-arrow-up"></i> 12%</span>
-                        vs last month
-                    </p>
-                </div>
-            </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tanggal Transaksi</th>
+                                        <th>Total Pelanggan</th>
+                                        <th>Total Uang Sehari</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse ($dailySummaries as $summary)
+                                        <tr>
+                                            <td>{{ date('d F Y', strtotime($summary->transaction_date_only)) }}</td>
+                                            <td>{{ $summary->total_customers_today }}</td>
+                                            <td>Rp {{ number_format($summary->total_daily_income, 0, ',', '.') }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center">Tidak ada ringkasan transaksi untuk bulan ini.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500">Transactions</p>
-                        <h2 class="text-3xl font-bold text-secondary" id="total-transactions">287</h2>
-                    </div>
-                    <div class="p-3 rounded-full bg-green-100 text-secondary">
-                        <i class="fas fa-exchange-alt text-xl"></i>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-sm text-gray-500 flex items-center">
-                        <span class="text-green-500 mr-1"><i class="fas fa-arrow-up"></i> 5%</span>
-                        vs last month
-                    </p>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500">Average Daily</p>
-                        <h2 class="text-3xl font-bold text-warning" id="average-daily">$415</h2>
-                    </div>
-                    <div class="p-3 rounded-full bg-yellow-100 text-warning">
-                        <i class="fas fa-chart-line text-xl"></i>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted">
+                                Menampilkan {{ $dailySummaries->firstItem() }} hingga {{ $dailySummaries->lastItem() }} dari {{ $dailySummaries->total() }} ringkasan harian
+                            </small>
+                            {{ $dailySummaries->appends(request()->query())->links('pagination::bootstrap-5') }}
+                        </div>
                     </div>
                 </div>
-                <div class="mt-4">
-                    <p class="text-sm text-gray-500 flex items-center">
-                        <span class="text-red-500 mr-1"><i class="fas fa-arrow-down"></i> 2%</span>
-                        vs last month
-                    </p>
-                </div>
-            </div>
-        </div>
 
-        <!-- Charts Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Daily Income</h3>
-                <div class="chart-container">
-                    <canvas id="daily-income-chart"></canvas>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Menu Terlaris per Kategori (Bulan Ini)</h5>
+                    </div>
+                    <div class="card-body">
+                        @forelse ($topSellingMenusPerCategory as $topMenu)
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                                <div>
+                                    <span class="fw-bold">{{ $topMenu['category_name'] }}:</span> {{ $topMenu['menu_name'] }}
+                                </div>
+                                <span class="badge bg-primary rounded-pill">{{ $topMenu['total_quantity'] }} Terjual</span>
+                            </div>
+                        @empty
+                            <p class="text-center text-muted">Belum ada data menu terlaris untuk bulan ini.</p>
+                        @endforelse
+                    </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Income by Category</h3>
-                <div class="chart-container">
-                    <canvas id="category-chart"></canvas>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Grafik Pendapatan Bulanan (Tahun Ini)</h5>
+                        <a href="{{ route('rekap.bulanan.grafik', ['year' => $selectedYear]) }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-chart-line me-1"></i> Show Grafik
+                        </a>
+                    </div>
+                <div class="card-body text-center text-muted">
+                    <p>Klik "Show Grafik" untuk melihat grafik pendapatan bulanan secara detail.</p>
                 </div>
             </div>
-        </div>
-
-        <!-- Daily Transactions Table -->
-        <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800">Daily Transactions</h3>
-            </div>
-            <div class="responsive-table">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Income</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="daily-transactions">
-                        <!-- Data will be inserted here by JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <div class="text-sm text-gray-500">
-                    Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">31</span> days
-                </div>
-                <div class="flex space-x-2">
-                    <button class="px-3 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200">Previous</button>
-                    <button class="px-3 py-1 rounded-md bg-primary text-white hover:bg-blue-600">Next</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Category Breakdown -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800">Category Breakdown</h3>
-            </div>
-            <div class="divide-y divide-gray-200">
-                <!-- Category items will be inserted here by JavaScript -->
-                <div id="category-breakdown"></div>
-            </div>
+            </main>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Set current month and year
-        const currentDate = new Date();
-        document.getElementById('month-select').value = currentDate.getMonth() + 1;
-        document.getElementById('year-select').value = currentDate.getFullYear();
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hapus semua Chart.js dan logic terkait grafik di sini
+            // Karena grafik sudah di halaman terpisah (grafikbulanan.blade.php)
 
-        // Sample data - in a real app, this would come from your API
-        const sampleData = {
-            month: currentDate.getMonth() + 1,
-            year: currentDate.getFullYear(),
-            totalIncome: 12450,
-            totalTransactions: 287,
-            averageDaily: 415,
-            dailyIncome: [
-                { day: 1, income: 320, transactions: 8, status: 'normal' },
-                { day: 2, income: 410, transactions: 10, status: 'normal' },
-                { day: 3, income: 280, transactions: 7, status: 'low' },
-                { day: 4, income: 520, transactions: 14, status: 'high' },
-                { day: 5, income: 390, transactions: 9, status: 'normal' },
-                { day: 6, income: 610, transactions: 16, status: 'high' },
-                { day: 7, income: 480, transactions: 12, status: 'normal' },
-                { day: 8, income: 370, transactions: 9, status: 'normal' },
-                { day: 9, income: 420, transactions: 11, status: 'normal' },
-                { day: 10, income: 290, transactions: 7, status: 'low' },
-                { day: 11, income: 510, transactions: 13, status: 'high' },
-                { day: 12, income: 450, transactions: 12, status: 'normal' },
-                { day: 13, income: 380, transactions: 10, status: 'normal' },
-                { day: 14, income: 540, transactions: 14, status: 'high' },
-                { day: 15, income: 490, transactions: 13, status: 'normal' },
-                { day: 16, income: 320, transactions: 8, status: 'normal' },
-                { day: 17, income: 410, transactions: 10, status: 'normal' },
-                { day: 18, income: 280, transactions: 7, status: 'low' },
-                { day: 19, income: 520, transactions: 14, status: 'high' },
-                { day: 20, income: 390, transactions: 9, status: 'normal' },
-                { day: 21, income: 610, transactions: 16, status: 'high' },
-                { day: 22, income: 480, transactions: 12, status: 'normal' },
-                { day: 23, income: 370, transactions: 9, status: 'normal' },
-                { day: 24, income: 420, transactions: 11, status: 'normal' },
-                { day: 25, income: 290, transactions: 7, status: 'low' },
-                { day: 26, income: 510, transactions: 13, status: 'high' },
-                { day: 27, income: 450, transactions: 12, status: 'normal' },
-                { day: 28, income: 380, transactions: 10, status: 'normal' },
-                { day: 29, income: 540, transactions: 14, status: 'high' },
-                { day: 30, income: 490, transactions: 13, status: 'normal' },
-                { day: 31, income: 320, transactions: 8, status: 'normal' }
-            ],
-            categories: [
-                { name: 'Food', income: 6500, percentage: 52, trend: 'up' },
-                { name: 'Beverages', income: 3200, percentage: 26, trend: 'up' },
-                { name: 'Desserts', income: 1800, percentage: 14, trend: 'down' },
-                { name: 'Others', income: 950, percentage: 8, trend: 'stable' }
-            ]
-        };
-
-        // Update UI with sample data
-        function updateUI(data) {
-            // Update summary cards
-            document.getElementById('total-income').textContent = `$${data.totalIncome.toLocaleString()}`;
-            document.getElementById('total-transactions').textContent = data.totalTransactions.toLocaleString();
-            document.getElementById('average-daily').textContent = `$${data.averageDaily.toLocaleString()}`;
-
-            // Update daily transactions table
-            const dailyTransactionsTable = document.getElementById('daily-transactions');
-            dailyTransactionsTable.innerHTML = '';
-            
-            data.dailyIncome.forEach(day => {
-                const statusColor = day.status === 'high' ? 'bg-green-100 text-green-800' : 
-                                  day.status === 'low' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${data.month}/${day.day}/${data.year}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${day.transactions}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$${day.income}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
-                            ${day.status.charAt(0).toUpperCase() + day.status.slice(1)}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <button class="text-primary hover:text-blue-700">Details</button>
-                    </td>
-                `;
-                dailyTransactionsTable.appendChild(row);
-            });
-
-            // Update category breakdown
-            const categoryBreakdown = document.getElementById('category-breakdown');
-            categoryBreakdown.innerHTML = '';
-            
-            data.categories.forEach(category => {
-                const trendIcon = category.trend === 'up' ? 'fa-arrow-up text-green-500' : 
-                                category.trend === 'down' ? 'fa-arrow-down text-red-500' : 'fa-minus text-gray-500';
-                
-                const item = document.createElement('div');
-                item.className = 'px-6 py-4 flex items-center justify-between';
-                item.innerHTML = `
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <i class="fas fa-utensils text-indigo-600"></i>
-                        </div>
-                        <div class="ml-4">
-                            <h4 class="text-sm font-medium text-gray-900">${category.name}</h4>
-                            <p class="text-sm text-gray-500">${category.percentage}% of total</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center">
-                        <span class="text-sm font-semibold text-gray-900 mr-2">$${category.income.toLocaleString()}</span>
-                        <i class="fas ${trendIcon}"></i>
-                    </div>
-                `;
-                categoryBreakdown.appendChild(item);
-            });
-
-            // Update charts
-            updateCharts(data);
-        }
-
-        // Initialize and update charts
-        let dailyIncomeChart, categoryChart;
-
-        function updateCharts(data) {
-            // Daily Income Chart
-            const dailyIncomeCtx = document.getElementById('daily-income-chart').getContext('2d');
-            const days = data.dailyIncome.map(day => day.day);
-            const incomes = data.dailyIncome.map(day => day.income);
-            
-            if (dailyIncomeChart) {
-                dailyIncomeChart.destroy();
+            // Sidebar toggle for mobile (jika ada)
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    document.querySelector('.sidebar').classList.toggle('active');
+                });
             }
-            
-            dailyIncomeChart = new Chart(dailyIncomeCtx, {
-                type: 'line',
-                data: {
-                    labels: days,
-                    datasets: [{
-                        label: 'Daily Income',
-                        data: incomes,
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        borderColor: 'rgba(59, 130, 246, 1)',
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                drawBorder: false
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Category Chart
-            const categoryCtx = document.getElementById('category-chart').getContext('2d');
-            const categoryNames = data.categories.map(cat => cat.name);
-            const categoryIncomes = data.categories.map(cat => cat.income);
-            const backgroundColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
-            
-            if (categoryChart) {
-                categoryChart.destroy();
-            }
-            
-            categoryChart = new Chart(categoryCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: categoryNames,
-                    datasets: [{
-                        data: categoryIncomes,
-                        backgroundColor: backgroundColors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right'
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
-
-        // Event listeners for month/year navigation
-        document.getElementById('prev-month').addEventListener('click', () => {
-            let month = parseInt(document.getElementById('month-select').value);
-            let year = parseInt(document.getElementById('year-select').value);
-            
-            if (month === 1) {
-                month = 12;
-                year--;
-            } else {
-                month--;
-            }
-            
-            document.getElementById('month-select').value = month;
-            document.getElementById('year-select').value = year;
-            loadData(month, year);
         });
-
-        document.getElementById('next-month').addEventListener('click', () => {
-            let month = parseInt(document.getElementById('month-select').value);
-            let year = parseInt(document.getElementById('year-select').value);
-            
-            if (month === 12) {
-                month = 1;
-                year++;
-            } else {
-                month++;
-            }
-            
-            document.getElementById('month-select').value = month;
-            document.getElementById('year-select').value = year;
-            loadData(month, year);
-        });
-
-        document.getElementById('month-select').addEventListener('change', () => {
-            const month = parseInt(document.getElementById('month-select').value);
-            const year = parseInt(document.getElementById('year-select').value);
-            loadData(month, year);
-        });
-
-        document.getElementById('year-select').addEventListener('change', () => {
-            const month = parseInt(document.getElementById('month-select').value);
-            const year = parseInt(document.getElementById('year-select').value);
-            loadData(month, year);
-        });
-
-        // Simulate loading data from API
-        function loadData(month, year) {
-            // In a real app, you would fetch data from your API here
-            console.log(`Loading data for ${month}/${year}`);
-            
-            // For demo purposes, we'll just modify the sample data
-            const modifiedData = JSON.parse(JSON.stringify(sampleData));
-            modifiedData.month = month;
-            modifiedData.year = year;
-            
-            // Randomize some data to show changes
-            modifiedData.totalIncome = Math.floor(10000 + Math.random() * 10000);
-            modifiedData.totalTransactions = Math.floor(200 + Math.random() * 200);
-            modifiedData.averageDaily = Math.floor(modifiedData.totalIncome / 30);
-            
-            modifiedData.dailyIncome.forEach(day => {
-                day.income = Math.floor(200 + Math.random() * 500);
-                day.transactions = Math.floor(5 + Math.random() * 15);
-                day.status = ['low', 'normal', 'high'][Math.floor(Math.random() * 3)];
-            });
-            
-            modifiedData.categories.forEach(cat => {
-                cat.income = Math.floor(modifiedData.totalIncome * (cat.percentage / 100));
-                cat.trend = ['up', 'down', 'stable'][Math.floor(Math.random() * 3)];
-            });
-            
-            updateUI(modifiedData);
-        }
-
-        // Initialize with current month data
-        updateUI(sampleData);
     </script>
 </body>
 </html>

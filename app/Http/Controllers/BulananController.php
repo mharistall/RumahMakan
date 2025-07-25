@@ -3,71 +3,80 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Transaction; // Asumsi model Transaction sudah ada
-use App\Models\TransactionDetail; // Asumsi model TransactionDetail sudah ada
-use App\Models\Category; // Asumsi model Category sudah ada
-use Carbon\Carbon; // Digunakan untuk manipulasi tanggal
+use App\Models\Transaction;
+use App\Models\TransactionDetail;
+use App\Models\Category;
 
 class BulananController extends Controller
 {
     public function index(Request $request)
     {
-        // Mendapatkan bulan dan tahun dari request, default ke bulan dan tahun saat ini
-        $selectedMonth = $request->input('month', Carbon::now()->month);
-        $selectedYear = $request->input('year', Carbon::now()->year);
+        $selectedMonth = $request->input('month', date('n'));
+        $selectedYear = $request->input('year', date('Y'));
+        $perPage = $request->input('per_page', 5);
 
-        // Membuat objek Carbon untuk awal dan akhir bulan yang dipilih
-        $startOfMonth = Carbon::create($selectedYear, $selectedMonth, 1)->startOfDay();
-        $endOfMonth = Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth()->endOfDay();
+        $startOfMonth = date('Y-m-01 00:00:00', strtotime("{$selectedYear}-{$selectedMonth}-01"));
+        $endOfMonth = date('Y-m-t 23:59:59', strtotime("{$selectedYear}-{$selectedMonth}-01"));
 
-        // 1. Mengambil ringkasan pendapatan per hari dalam bulan yang dipilih
-        $dailyRevenues = Transaction::selectRaw('DATE(transaction_date) as date, SUM(total_amount) as total_daily_revenue')
-            ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
-            ->groupBy('date')
-            ->orderBy('date', 'ASC')
-            ->get();
+        $dailySummaries = Transaction::selectRaw('DATE(transaction_date) as transaction_date_only, COUNT(DISTINCT customer_number) as total_customers_today, SUM(total_amount) as total_daily_income')
+                                    ->whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                                    ->groupBy('transaction_date_only')
+                                    ->orderBy('transaction_date_only', 'desc')
+                                    ->paginate($perPage);
 
-        // Mengisi tanggal yang tidak ada transaksi dengan 0
-        $currentDate = $startOfMonth->copy();
-        $formattedDailyRevenues = [];
-        while ($currentDate->lte($endOfMonth)) {
-            $dateString = $currentDate->toDateString();
-            $found = false;
-            foreach ($dailyRevenues as $daily) {
-                if ($daily->date === $dateString) {
-                    $formattedDailyRevenues[] = ['date' => $daily->date, 'total_daily_revenue' => $daily->total_daily_revenue];
-                    $found = true;
-                    break;
-                }
+        $totalMonthlyIncome = Transaction::whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+                                        ->sum('total_amount');
+        $totalMonthlyTransactions = Transaction::whereBetween('transaction_date', [$startOfMonth, $endOfMonth])->count();
+
+        $topSellingMenusPerCategory = [];
+        $categories = Category::all();
+
+        foreach ($categories as $category) {
+            $topMenu = TransactionDetail::selectRaw('menu.name, SUM(detailtransaksi.quantity) as total_quantity')
+                ->join('menu', 'detailtransaksi.menu_id', '=', 'menu.id')
+                ->join('transaksi', 'detailtransaksi.transaction_id', '=', 'transaksi.id')
+                ->whereBetween('transaksi.transaction_date', [$startOfMonth, $endOfMonth])
+                ->where('menu.category_id', $category->id)
+                ->groupBy('menu.name')
+                ->orderByDesc('total_quantity')
+                ->first();
+
+            if ($topMenu) {
+                $topSellingMenusPerCategory[] = [
+                    'category_name' => $category->name,
+                    'menu_name' => $topMenu->name,
+                    'total_quantity' => $topMenu->total_quantity,
+                ];
             }
-            if (!$found) {
-                $formattedDailyRevenues[] = ['date' => $dateString, 'total_daily_revenue' => 0];
-            }
-            $currentDate->addDay();
         }
 
+        return view('bulanan', [
+            'dailySummaries' => $dailySummaries,
+            'totalMonthlyIncome' => $totalMonthlyIncome,
+            'totalMonthlyTransactions' => $totalMonthlyTransactions,
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'perPage' => $perPage,
+            'topSellingMenusPerCategory' => $topSellingMenusPerCategory,
+        ]);
+    }
 
-        // 2. Menghitung total pemasukan untuk bulan yang dipilih
-        $totalMonthlyRevenue = Transaction::whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
-                                        ->sum('total_amount');
+    public function showGraph(Request $request, $year = null)
+    {
+        $selectedYear = $request->input('year', $year ?? date('Y'));
 
-        // 3. Mengambil ringkasan penjualan per kategori menu
-        $categorySales = TransactionDetail::join('menus', 'transaction_details.menu_id', '=', 'menus.id')
-            ->join('categories', 'menus.category_id', '=', 'categories.id')
-            ->join('transactions', 'transaction_details.transaction_id', '=', 'transactions.id')
-            ->selectRaw('categories.name as category_name, SUM(transaction_details.subtotal) as total_category_revenue')
-            ->whereBetween('transactions.transaction_date', [$startOfMonth, $endOfMonth])
-            ->groupBy('categories.name')
-            ->get();
+        $monthlyIncomeData = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $monthStart = date('Y-m-01 00:00:00', strtotime("{$selectedYear}-{$m}-01"));
+            $monthEnd = date('Y-m-t 23:59:59', strtotime("{$selectedYear}-{$m}-01"));
 
-        // Mengirimkan data ke view
-        return view('bulanan', compact(
-            'selectedMonth',
-            'selectedYear',
-            'dailyRevenues',
-            'totalMonthlyRevenue',
-            'categorySales',
-            'formattedDailyRevenues' // Gunakan ini untuk tampilan per hari yang lengkap
-        ));
+            $income = Transaction::whereBetween('transaction_date', [$monthStart, $monthEnd])->sum('total_amount');
+            $monthlyIncomeData[date('M', strtotime("{$selectedYear}-{$m}-01"))] = $income;
+        }
+
+        return view('grafikbulanan', [
+            'selectedYear' => $selectedYear,
+            'monthlyIncomeData' => $monthlyIncomeData
+        ]);
     }
 }
